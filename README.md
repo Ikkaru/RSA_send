@@ -1,4 +1,7 @@
 # RSA Send
+<p align="center">
+  <img src="docs/img/banner.png" alt="Repository Banner" width="100%">
+</p>
 
 ## Dependencies:
 - numpy>=2.5.4,
@@ -48,7 +51,8 @@
 | `build` | Perubahan pada sistem build, dependensi, atau skrip eksternal. | `build: upgrade react version to 19` |
 | `chore` | Pekerjaan rutin lainnya yang tidak mengubah kode aplikasi. | `chore: release version 1.2.0` |
 
-
+## Three way pass protocol flows
+![flow](docs/img/Screenshot%202026-10-20%20003248.png)
 
 ## TODO:
 **Math** 
@@ -110,3 +114,5 @@
 
 sisanya Se kreatifnya ajah
 
+## License
+Do whatever u want
