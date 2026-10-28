@@ -2,61 +2,54 @@
 import numpy as np
 from PIL import Image
 
+
 class ImageProcessor:
 
-    # Constructor
-    def __init__(self, image_path):
-        # Instance Attribute
-        self._image_path = image_path
-        self._total_bytes = 0
-        self._original_shape = None
-        self._raw_bytes = None
+  def __init__(self, image_path: str):
+    self._image_path = image_path
+    self._original_shape = None
+    self._dtype = None
 
-    # Method to conver images to array of bytes
-    def to_bytes(self):
-        # Load the image
-        img = Image.open(self._image_path)
+  def to_bytes(self) -> tuple[bytes, tuple, str]:
+    """Membaca gambar dan mengembalikan raw bytes, dimensi (shape), serta tipe data (dtype)."""
+    img = Image.open(self._image_path)
+    img_arr = np.array(img)
 
-        # Convert to numpy array
-        img_arr = np.array(img)
-        self._original_shape = np.shape(img_arr)
+    self._original_shape = img_arr.shape
+    self._dtype = str(img_arr.dtype)
 
-        # Convert to bytes
-        self._raw_bytes = img_arr.tobytes()
-        self._total_bytes = len(self._raw_bytes)
+    return img_arr.tobytes(), self._original_shape, self._dtype
 
-        return self._raw_bytes
-
-# Function to chunk the bytes
-def chunk(data: bytes, n: int) -> list[bytes]:
-    chunk_size = max(1, (n.bit_length() - 1) // 8)  # Calculate chunk size
-
-    # Chunking
-    chunks = []
-    
-    for i in range(0, len(data), chunk_size):
-        block = data[i : i + chunk_size]
-        chunks.append(block)
-    return chunks
+  @staticmethod
+  def to_image(
+      raw_bytes: bytes, shape: tuple, dtype: str = "uint8"
+  ) -> Image.Image:
+    """Merekonstruksi raw bytes kembali menjadi objek PIL Image di sisi Server."""
+    img_arr = np.frombuffer(raw_bytes, dtype=dtype).reshape(shape)
+    return Image.fromarray(img_arr)
 
 
-# Function to join chunks of bytes to raw bytes
+def chunk(data: bytes, chunk_size: int = 16384) -> list[bytes]:
+  """Memotong data bytes menjadi list of chunks (default 16 KiB)."""
+  return [
+      data[i : i + chunk_size] for i in range(0, len(data), chunk_size)
+  ]
+
+
 def chunks_join(chunks: list[bytes]) -> bytes:
-    raw_bytes = b""
-
-    [item for sublist in chunks for item in sublist]
-        
-
-
+  """Menggabungkan kembali list of chunks menjadi bytes utuh."""
+  return b"".join(chunks)
 
 
 if __name__ == "__main__":
-    a = ImageProcessor('./mbg.jpg').to_bytes()
-    b = chunk(a, 65537)
-    print(len(b))
-    print(len(b[0]))
+  processor = ImageProcessor("./test/mbg.jpg")
+  raw_bytes, shape, dtype = processor.to_bytes()
 
+  # Uji pemotongan & penggabungan
+  chunks_list = chunk(raw_bytes, 16384)
+  print(f"Jumlah chunk        : {len(chunks_list)}")
+  print(f"Ukuran chunk awal   : {len(chunks_list[0])} bytes")
 
-         
-        
-
+  reconstructed_bytes = chunks_join(chunks_list)
+  img = ImageProcessor.to_image(reconstructed_bytes, shape, dtype)
+  print(f"Ukuran gambar hasil : {img.size}")

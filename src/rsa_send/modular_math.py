@@ -46,6 +46,19 @@ def mod_pow (base, exp, mod):
 
     return hasil
 
+
+def mod_invers (a, b):
+
+    hasil, koef = ext_gcd(a, b)
+
+    if hasil != 1:
+        raise ValueError(f"Inverse tidak ada karena gcd({a}, {b}) = {hasil} ≠ 1")
+
+    else:
+        return koef[0] % b
+
+    
+
 def generate_prime(bits):
     if bits < 2: raise ValueError("bits minimal 2")
     while True:
