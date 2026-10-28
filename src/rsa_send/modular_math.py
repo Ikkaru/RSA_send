@@ -1,7 +1,5 @@
 # Math
 import secrets
-import hmac
-import hashlib
 
 def miller_rabin(n, k):
     if n < 2: return False
@@ -29,7 +27,24 @@ def miller_rabin(n, k):
                 break
         else:
             return False
-    return True
+    return 
+
+def mod_pow (base, exp, mod):
+
+    if mod == 1:
+        return 0
+
+    hasil = 1
+    base = base % mod
+
+    while exp > 0:
+        if (exp % 2) == 1:
+            hasil = (hasil * base) % mod
+
+        base = (base * base) % mod  
+        exp = exp // 2
+
+    return hasil
 
 def generate_prime(bits):
     if bits < 2: raise ValueError("bits minimal 2")
@@ -38,7 +53,20 @@ def generate_prime(bits):
         candidate = secrets.randbits(bits)
         candidate |= (1 << (bits - 1)) | 1
         if miller_rabin(candidate, 40):
-            return candidate
+            return 
+
+def ext_gcd (a, b):
+
+   x0, x1, y0, y1 = 1, 0, 0, 1
+   
+   while b != 0:
+       q = a // b
+       a, b = b, a % b
+       x0, x1 = x1, x0 - q * x1
+       y0, y1 = y1, y0 - q * y1
+
+   return a, [x0, y0]
+
 
 def crt_reconstruct(m_p, m_q, p, q, q_inv):
     h = (q_inv * ((m_p - m_q) % p)) % p

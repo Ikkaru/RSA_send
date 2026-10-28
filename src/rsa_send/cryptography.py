@@ -1,12 +1,10 @@
 # Cryptography
-# Cryptography
 import hmac
 import hashlib
 import math
 import secrets
 
-from .math import generate_prime, crt_reconstruct
-from mod_pow import mod_pow
+from .modular_math import generate_prime, crt_reconstruct, mod_pow
 from mod_invers import mod_invers
 
 
@@ -44,7 +42,7 @@ def hkdf(ikm: bytes, length: int, salt: bytes | None = None, info: bytes = b"", 
     prk = hkdf_extract(salt, ikm, hash_alg)
     return hkdf_expand(prk, info, length, hash_alg)
 
-KEM_SALT = None
+
 KEM_INFO = b"RSA-KEM TrafficKey"
 
 
@@ -53,13 +51,14 @@ def _int_to_bytes(z: int, n: int) -> bytes:
     return z.to_bytes(k, "big")
 
 
-def _derive_traffic_key(z: int, n: int, key_len: int) -> bytes:
+def _derive_traffic_key(z: int, n: int, key_len: int, salt:bytes | None = None) -> bytes:
     z_bytes = _int_to_bytes(z, n)
-    prk = hkdf_extract(KEM_SALT, z_bytes)
+    prk = hkdf_extract(salt, z_bytes)
+    
     return hkdf_expand(prk, KEM_INFO, key_len)
 
 
-def rsa_kem_encapsulate(public_key: tuple[int, int], key_len: int = 32) -> tuple[int, bytes]:
+def rsa_kem_encapsulate(public_key: tuple[int, int], key_len: int = 32, salt: bytes | None = None) -> tuple[bytes, bytes]:
     e, n = public_key
 
     # z acak yang aman secara kriptografi, 2 <= z <= n-2
