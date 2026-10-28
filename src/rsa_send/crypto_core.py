@@ -4,8 +4,7 @@ import hashlib
 import math
 import secrets
 
-from .modular_math import generate_prime, crt_reconstruct, mod_pow
-from mod_invers import mod_invers
+from rsa_send.modular_math import generate_prime, crt_reconstruct, mod_pow, mod_invers
 
 
 def hkdf_extract(salt: bytes | None, ikm: bytes, hash_alg=hashlib.sha256) -> bytes:
