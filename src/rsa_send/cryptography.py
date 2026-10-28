@@ -65,8 +65,9 @@ def rsa_kem_encapsulate(public_key: tuple[int, int], key_len: int = 32, salt: by
     z = secrets.randbelow(n - 3) + 2
 
     c = mod_pow(z, e, n)
-    traffic_key = _derive_traffic_key(z, n, key_len)
-    return c, traffic_key
+    c_bytes = _int_to_bytes(c, n)
+    traffic_key = _derive_traffic_key(z, n, key_len, salt)
+    return c_bytes, traffic_key
 
 PUBLIC_EXPONENT = 65537
 
@@ -110,18 +111,23 @@ def rsa_generate_key_crt(bits: int = 2048) -> tuple[tuple[int, int], tuple[int, 
     private_key_crt = (n, d, p, q, dp, dq, q_inv)
     return public_key, private_key_crt
 
-def rsa_kem_decapsulate_crt(c: int, private_key_crt: tuple, key_len: int = 32) -> bytes:
+def rsa_kem_decapsulate_crt(c_input: int, private_key_crt: tuple, key_len: int = 32, salt: bytes | None = None) -> bytes:
     n, d, p, q, dp, dq, q_inv = private_key_crt
+
+    if isinstance(c_input, bytes):
+        c = int.from_bytes(c_input, "big")
+    else:
+        c = c_input
 
     if not (1 < c < n):
         raise ValueError("Ciphertext C di luar rentang yang valid (1 < C < n).")
 
-    # Dekripsi terpisah modulo p dan modulo q (lebih cepat dari mod_pow(c, d, n))
+    # Dekripsi terpisah modulo p dan modulo q
     m_p = mod_pow(c % p, dp, p)
     m_q = mod_pow(c % q, dq, q)
 
     # Gabungkan kembali dengan Garner's formula
     z = crt_reconstruct(m_p, m_q, p, q, q_inv)
 
-    # Turunan kunci HARUS identik dengan sisi client
-    return _derive_traffic_key(z, n, key_len)
+    # Turunan kunci dengan salt yang identik dengan sisi client
+    return _derive_traffic_key(z, n, key_len, salt)

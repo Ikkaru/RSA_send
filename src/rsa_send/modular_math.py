@@ -27,7 +27,7 @@ def miller_rabin(n, k):
                 break
         else:
             return False
-    return 
+    return True
 
 def mod_pow (base, exp, mod):
 
@@ -53,7 +53,7 @@ def generate_prime(bits):
         candidate = secrets.randbits(bits)
         candidate |= (1 << (bits - 1)) | 1
         if miller_rabin(candidate, 40):
-            return 
+            return candidate
 
 def ext_gcd (a, b):
 
