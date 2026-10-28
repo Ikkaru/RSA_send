@@ -69,9 +69,6 @@ def rsa_kem_encapsulate(public_key: tuple[int, int], key_len: int = 32) -> tuple
     traffic_key = _derive_traffic_key(z, n, key_len)
     return c, traffic_key
 
-# ---------------------------------------------------------------------------
-# RSA Key Generation dengan parameter CRT
-# ---------------------------------------------------------------------------
 PUBLIC_EXPONENT = 65537
 
 
@@ -113,3 +110,19 @@ def rsa_generate_key_crt(bits: int = 2048) -> tuple[tuple[int, int], tuple[int, 
     public_key = (e, n)
     private_key_crt = (n, d, p, q, dp, dq, q_inv)
     return public_key, private_key_crt
+
+def rsa_kem_decapsulate_crt(c: int, private_key_crt: tuple, key_len: int = 32) -> bytes:
+    n, d, p, q, dp, dq, q_inv = private_key_crt
+
+    if not (1 < c < n):
+        raise ValueError("Ciphertext C di luar rentang yang valid (1 < C < n).")
+
+    # Dekripsi terpisah modulo p dan modulo q (lebih cepat dari mod_pow(c, d, n))
+    m_p = mod_pow(c % p, dp, p)
+    m_q = mod_pow(c % q, dq, q)
+
+    # Gabungkan kembali dengan Garner's formula
+    z = crt_reconstruct(m_p, m_q, p, q, q_inv)
+
+    # Turunan kunci HARUS identik dengan sisi client
+    return _derive_traffic_key(z, n, key_len)
