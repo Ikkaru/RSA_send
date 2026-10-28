@@ -39,17 +39,3 @@ def chunk(data: bytes, chunk_size: int = 16384) -> list[bytes]:
 def chunks_join(chunks: list[bytes]) -> bytes:
   """Menggabungkan kembali list of chunks menjadi bytes utuh."""
   return b"".join(chunks)
-
-
-if __name__ == "__main__":
-  processor = ImageProcessor("./test/mbg.jpg")
-  raw_bytes, shape, dtype = processor.to_bytes()
-
-  # Uji pemotongan & penggabungan
-  chunks_list = chunk(raw_bytes, 16384)
-  print(f"Jumlah chunk        : {len(chunks_list)}")
-  print(f"Ukuran chunk awal   : {len(chunks_list[0])} bytes")
-
-  reconstructed_bytes = chunks_join(chunks_list)
-  img = ImageProcessor.to_image(reconstructed_bytes, shape, dtype)
-  print(f"Ukuran gambar hasil : {img.size}")

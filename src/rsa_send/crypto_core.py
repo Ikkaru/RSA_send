@@ -68,7 +68,7 @@ def rsa_kem_encapsulate(public_key: tuple[int, int], key_len: int = 32, salt: by
     traffic_key = _derive_traffic_key(z, n, key_len, salt)
     return c_bytes, traffic_key
 
-PUBLIC_EXPONENT = 65537
+PUBLIC_EXPONENT = 65537 # e
 
 
 def rsa_generate_key_crt(bits: int = 2048) -> tuple[tuple[int, int], tuple[int, ...]]:

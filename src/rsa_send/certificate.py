@@ -1,5 +1,6 @@
+# Simulate TLS Certificate Signing and Verifying
 import hashlib
-from .modular_math import mod_pow
+from rsa_send.modular_math import mod_pow
 
 
 def sign_certificate(

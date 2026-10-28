@@ -10,7 +10,7 @@ from rsa_send.crypto_core import (
     rsa_kem_encapsulate,
 )
 
-# Simulasi Certificate Authority
+# Simulasi Certificate Authority, Generate public dan private key
 ca_pub_key, ca_priv_key = rsa_generate_key_crt(2048)
 
 
@@ -23,7 +23,7 @@ def recv_exact(sock: socket.socket, length: int) -> bytes:
     while len(buf) < length:
         chunk = sock.recv(length - len(buf))
         if not chunk:
-            raise ConnectionError("Koneksi terputus saat membaca data.")
+            raise ConnectionError("Disconnected While Reading Data")
         buf.extend(chunk)
     return bytes(buf)
 
