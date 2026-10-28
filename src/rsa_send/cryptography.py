@@ -5,7 +5,9 @@ import hashlib
 import math
 import secrets
 
-from .math import mod_pow
+from .math import generate_prime, crt_reconstruct
+from mod_pow import mod_pow
+from mod_invers import mod_invers
 
 
 def hkdf_extract(salt: bytes | None, ikm: bytes, hash_alg=hashlib.sha256) -> bytes:
@@ -66,3 +68,61 @@ def rsa_kem_encapsulate(public_key: tuple[int, int], key_len: int = 32) -> tuple
     c = mod_pow(z, e, n)
     traffic_key = _derive_traffic_key(z, n, key_len)
     return c, traffic_key
+
+PUBLIC_EXPONENT = 65537
+
+
+def rsa_generate_key_crt(bits: int = 2048) -> tuple[tuple[int, int], tuple[int, ...]]:
+    if bits < 16 or bits % 2 != 0:
+        raise ValueError("bits harus genap dan minimal 16.")
+
+    e = PUBLIC_EXPONENT
+    half = bits // 2
+
+    while True:
+        p = generate_prime(half)
+        q = generate_prime(half)
+
+        # p dan q harus berbeda
+        if p == q:
+            continue
+
+        # e harus koprima dengan (p-1) dan (q-1), supaya d ada
+        if math.gcd(e, p - 1) != 1 or math.gcd(e, q - 1) != 1:
+            continue
+
+        n = p * q
+
+        # Pastikan n benar-benar berukuran 'bits'
+        if n.bit_length() != bits:
+            continue
+
+        break
+
+    phi = (p - 1) * (q - 1)
+    d = mod_invers(e, phi)
+
+    # Parameter CRT
+    dp = d % (p - 1)
+    dq = d % (q - 1)
+    q_inv = mod_invers(q, p)
+
+    public_key = (e, n)
+    private_key_crt = (n, d, p, q, dp, dq, q_inv)
+    return public_key, private_key_crt
+
+def rsa_kem_decapsulate_crt(c: int, private_key_crt: tuple, key_len: int = 32) -> bytes:
+    n, d, p, q, dp, dq, q_inv = private_key_crt
+
+    if not (1 < c < n):
+        raise ValueError("Ciphertext C di luar rentang yang valid (1 < C < n).")
+
+    # Dekripsi terpisah modulo p dan modulo q (lebih cepat dari mod_pow(c, d, n))
+    m_p = mod_pow(c % p, dp, p)
+    m_q = mod_pow(c % q, dq, q)
+
+    # Gabungkan kembali dengan Garner's formula
+    z = crt_reconstruct(m_p, m_q, p, q, q_inv)
+
+    # Turunan kunci HARUS identik dengan sisi client
+    return _derive_traffic_key(z, n, key_len)
