@@ -11,7 +11,7 @@ dependencies = [
     "cryptography>=50.0.2",
     "numpy>=2.5.4",
     "pillow>=12.3.0",
-    "streamlit>=1.66.0",
+    "pywebview>=5.4",
 ]
 
 [project.scripts]

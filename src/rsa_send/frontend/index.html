@@ -1,154 +1,365 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>RSA Send</title>
   <link rel="stylesheet" href="static/css/style.css">
 </head>
 <body>
-
-  <!-- Pemilih tab (CSS murni). Harus berada langsung di bawah body, sebelum .tabs dan main -->
-  <input class="pilih" type="radio" name="tab" id="t-kirim" checked>
-  <input class="pilih" type="radio" name="tab" id="t-terima">
-  <input class="pilih" type="radio" name="tab" id="t-alur">
-
-  <header class="top">
-    <div class="wrap">
-      <h1>RSA Send</h1>
-      <p>Pengiriman citra dengan RSA-KEM, CRT, HKDF, dan AES-GCM</p>
-    </div>
-  </header>
-
-  <nav class="tabs" aria-label="Menu utama">
-    <div class="wrap">
-      <label for="t-kirim">Kirim</label>
-      <label for="t-terima">Terima</label>
-      <label for="t-alur">Alur protokol</label>
-    </div>
-  </nav>
-
-  <main class="wrap">
-
-    <!-- ===================== KIRIM (CLIENT) ===================== -->
-    <section class="panel" id="kirim">
-      <h2>Kirim citra</h2>
-      <p class="intro">Sisi client. Pilih citra, tentukan parameter, lalu kirim ke server.</p>
-
-      <!-- Sambungkan action ke route backend, misalnya /kirim -->
-      <form class="form" action="/kirim" method="post" enctype="multipart/form-data">
-
-        <div class="field">
-          <label for="gambar">Citra</label>
-          <input id="gambar" type="file" name="gambar" accept="image/*" required>
-          <p class="info">Format gambar umum seperti PNG atau JPG.</p>
-        </div>
-
-        <div class="row">
-          <div class="field">
-            <label for="bits">Ukuran kunci RSA</label>
-            <select id="bits" name="bits">
-              <option value="1024">1024 bit</option>
-              <option value="2048" selected>2048 bit</option>
-              <option value="3072">3072 bit</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="key_len">Panjang kunci AES</label>
-            <select id="key_len" name="key_len">
-              <option value="16">16 byte (AES-128)</option>
-              <option value="32" selected>32 byte (AES-256)</option>
-            </select>
-          </div>
-        </div>
-
-        <details class="lanjut">
-          <summary>Pengaturan lanjutan</summary>
-          <div class="field">
-            <label for="salt">Salt HKDF</label>
-            <input id="salt" type="text" name="salt">
-            <p class="info">Boleh dikosongkan. Server dan client harus memakai salt yang sama.</p>
-          </div>
-          <div class="field">
-            <label for="aad">Data tambahan (AAD)</label>
-            <input id="aad" type="text" name="aad">
-            <p class="info">Boleh dikosongkan. Ikut diautentikasi oleh AES-GCM tetapi tidak dienkripsi.</p>
-          </div>
-        </details>
-
-        <button class="btn" type="submit">Enkripsi dan kirim</button>
-      </form>
-    </section>
-
-    <!-- ===================== TERIMA (SERVER) ===================== -->
-    <section class="panel" id="terima">
-      <h2>Terima citra</h2>
-      <p class="intro">Sisi server. Menampilkan data yang diterima dan hasil dekripsinya.</p>
-
-      <table class="tabel">
-        <tbody>
-          <tr><th scope="row">Status</th><td>Menunggu kiriman</td></tr>
-          <tr><th scope="row">Kunci publik (e, n)</th><td class="mono">belum dibangkitkan</td></tr>
-          <tr><th scope="row">Ciphertext KEM (C)</th><td class="mono">belum ada</td></tr>
-          <tr><th scope="row">Sidik jari kunci AES</th><td class="mono">belum ada</td></tr>
-          <tr><th scope="row">Tag autentikasi</th><td class="mono">belum ada</td></tr>
-        </tbody>
-      </table>
-
-      <div class="dua">
-        <figure>
-          <div class="kotak">Citra terenkripsi</div>
-          <figcaption>Data yang melintas di jaringan</figcaption>
-        </figure>
-        <figure>
-          <div class="kotak">Citra hasil dekripsi</div>
-          <figcaption>Citra yang diterima server</figcaption>
-        </figure>
+  <main id="top" class="shell">
+    <section class="intro" aria-labelledby="page-title">
+      <div class="title-lockup">
+        <img class="title-logo" src="public/logo.png" alt="">
+        <h1 id="page-title">RSA Send</h1>
       </div>
     </section>
 
-    <!-- ===================== ALUR PROTOKOL ===================== -->
-    <section class="panel" id="alur">
-      <h2>Alur protokol</h2>
-      <p class="intro">Klik langkah untuk melihat penjelasannya.</p>
+    <section class="workspace" aria-label="Transfer workspace">
+      <aside class="control-panel">
+        <div class="panel-heading"><h2>Connection</h2></div>
+        <div class="mode-switch" role="group" aria-label="Application mode">
+          <button class="mode-button active" type="button" data-mode="client">Client</button>
+          <button class="mode-button" type="button" data-mode="server">Server</button>
+        </div>
+        <div class="fields">
+          <label class="field"><span>Host</span><input id="host" type="text" value="127.0.0.1" autocomplete="off"></label>
+          <label class="field"><span>Port</span><input id="port" type="number" value="8443" min="1" max="65535"></label>
+        </div>
 
-      <div class="langkah">
-        <details>
-          <summary><span class="no">1</span> Buat kunci</summary>
-          <p>Server membuat pasangan kunci RSA beserta parameter CRT <code>dp</code>, <code>dq</code>, dan <code>q_inv</code>.</p>
-          <p class="fn">rsa_generate_key_crt</p>
-        </details>
-        <details>
-          <summary><span class="no">2</span> Enkapsulasi</summary>
-          <p>Client memilih angka acak <code>z</code>, lalu menghitung <code>C = z<sup>e</sup> mod n</code>.</p>
-          <p class="fn">rsa_kem_encapsulate</p>
-        </details>
-        <details>
-          <summary><span class="no">3</span> Turunkan kunci AES</summary>
-          <p>HKDF mengubah <code>z</code> menjadi kunci simetris dengan panjang 16 atau 32 byte.</p>
-          <p class="fn">hkdf_extract, hkdf_expand</p>
-        </details>
-        <details>
-          <summary><span class="no">4</span> Enkripsi citra</summary>
-          <p>AES-GCM mengenkripsi citra dan menghasilkan ciphertext beserta tag autentikasi.</p>
-          <p class="fn">aead_encrypt_decrypt</p>
-        </details>
-        <details>
-          <summary><span class="no">5</span> Dekapsulasi</summary>
-          <p>Server memulihkan <code>z</code> dengan CRT, lalu menurunkan kunci AES yang sama.</p>
-          <p class="fn">rsa_kem_decapsulate_crt</p>
-        </details>
-        <details>
-          <summary><span class="no">6</span> Dekripsi citra</summary>
-          <p>Tag diperiksa. Jika cocok, ciphertext dikembalikan menjadi citra asli.</p>
-          <p class="fn">aead_encrypt_decrypt</p>
-        </details>
-      </div>
+        <div class="connection-badge">
+          <span class="status-dot closed" id="panel-dot"></span>
+          <span id="panel-status-text">Disconnected (Closed)</span>
+        </div>
+
+        <button id="connect-button" class="button button-secondary" type="button">Connect</button>
+      </aside>
+
+      <section class="image-panel sent-panel" aria-labelledby="sent-title">
+        <div class="panel-heading"><h2 id="sent-title">Sent image</h2></div>
+        <label id="drop-zone" class="drop-zone" for="image-input">
+          <input id="image-input" type="file" accept="image/png,image/jpeg,image/webp,image/bmp">
+          <span class="upload-mark" aria-hidden="true">+</span><strong>Choose an image</strong><span>PNG, JPG, WEBP or BMP</span>
+        </label>
+        <div class="preview-wrap hidden" id="sent-preview-wrap"><img id="sent-preview" alt="Selected image preview"><button id="clear-image" class="clear-button" type="button" aria-label="Clear selected image">×</button></div>
+        <p id="file-name" class="file-name">No image selected</p>
+      </section>
+
+      <section class="image-panel received-panel" aria-labelledby="received-title">
+        <div class="panel-heading"><h2 id="received-title">Received image</h2></div>
+        <div class="received-placeholder" id="received-placeholder"><span class="received-mark" aria-hidden="true">↘</span><span>Your received image will appear here.</span></div>
+        <div class="preview-wrap hidden" id="received-preview-wrap"><img id="received-preview" alt="Received image preview"></div>
+        <p id="received-meta" class="file-name">Waiting for a transfer</p>
+      </section>
     </section>
 
+    <div class="action-row">
+      <p id="status-message" class="status-message" role="status">Lakukan handshake dengan menekan tombol Connect terlebih dahulu.</p>
+      <button id="send-button" class="button button-primary disabled" type="button" disabled>Send image <span aria-hidden="true">→</span></button>
+    </div>
+
+    <div class="dashed-divider" aria-hidden="true"></div>
+
+    <section class="below-fold" aria-label="Transfer details">
+      <div class="log-panel-header">
+        <div>
+          <p class="eyebrow">Protocol activity & Handshake logs</p>
+          <p class="log-sub">Live cryptographic steps, certificate checks, and record layer events.</p>
+        </div>
+        <button id="clear-log-btn" class="log-clear-btn" type="button">Clear log</button>
+      </div>
+      <div class="log-terminal" id="log-terminal">
+        <div class="log-entry">
+          <span class="log-time">--:--:--</span>
+          <span class="log-badge info">INFO</span>
+          <span class="log-text">Aplikasi siap. Klik "Connect" di mode Client untuk memulai proses TLS Handshake sebelum mengirim gambar.</span>
+        </div>
+      </div>
+    </section>
   </main>
 
-  <footer class="wrap foot">RSA Send &middot; Proyek Matematika Diskrit</footer>
+  <script>
+    const state = {
+      mode: 'client',
+      api: null,
+      clientConnected: false,
+      serverRunning: false,
+      lastServerLogIndex: 0,
+      lastTransferId: 0,
+      serverWatchTimer: null,
+    };
 
+    const imageInput = document.querySelector('#image-input');
+    const sentPreview = document.querySelector('#sent-preview');
+    const sentPreviewWrap = document.querySelector('#sent-preview-wrap');
+    const dropZone = document.querySelector('#drop-zone');
+    const fileName = document.querySelector('#file-name');
+    const statusMessage = document.querySelector('#status-message');
+    const panelDot = document.querySelector('#panel-dot');
+    const panelStatusText = document.querySelector('#panel-status-text');
+    const sendButton = document.querySelector('#send-button');
+    const connectButton = document.querySelector('#connect-button');
+    const logTerminal = document.querySelector('#log-terminal');
+    const clearLogBtn = document.querySelector('#clear-log-btn');
+    let selectedImagePath = null;
+
+    function appendLog(time, tag, text) {
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+
+      const timeSpan = document.createElement('span');
+      timeSpan.className = 'log-time';
+      timeSpan.textContent = time || new Date().toTimeString().split(' ')[0];
+
+      const badgeSpan = document.createElement('span');
+      const tagLower = (tag || 'info').toLowerCase();
+      badgeSpan.className = `log-badge ${tagLower}`;
+      badgeSpan.textContent = tag || 'INFO';
+
+      const textSpan = document.createElement('span');
+      textSpan.className = 'log-text';
+      textSpan.textContent = text;
+
+      entry.appendChild(timeSpan);
+      entry.appendChild(badgeSpan);
+      entry.appendChild(textSpan);
+      logTerminal.appendChild(entry);
+      logTerminal.scrollTop = logTerminal.scrollHeight;
+    }
+
+    clearLogBtn.addEventListener('click', () => {
+      logTerminal.innerHTML = '';
+      appendLog(null, 'INFO', 'Log dibersihkan.');
+    });
+
+    function setStatus(message, tone = 'normal') {
+      statusMessage.textContent = message;
+      statusMessage.dataset.tone = tone;
+    }
+
+    function setConnectionIndicator(status, text) {
+      panelDot.className = `status-dot ${status}`;
+      panelStatusText.textContent = text;
+    }
+
+    function setMode(mode) {
+      state.mode = mode;
+      document.querySelectorAll('.mode-button').forEach((b) => b.classList.toggle('active', b.dataset.mode === mode));
+      const isServer = mode === 'server';
+
+      if (isServer) {
+        connectButton.textContent = state.serverRunning ? 'Stop server' : 'Start server';
+        connectButton.classList.toggle('danger', state.serverRunning);
+        sendButton.disabled = true;
+        sendButton.classList.add('disabled');
+        if (state.serverRunning) {
+          setConnectionIndicator('waiting', 'Listening for Client...');
+          setStatus('Server aktif. Menunggu koneksi Client.');
+          startServerWatch();
+        } else {
+          setConnectionIndicator('closed', 'Server Closed');
+          setStatus('Server belum berjalan. Klik Start server untuk mulai.');
+          stopServerWatch();
+        }
+      } else {
+        stopServerWatch();
+        connectButton.textContent = state.clientConnected ? 'Disconnect' : 'Connect';
+        connectButton.classList.toggle('danger', state.clientConnected);
+        sendButton.disabled = !state.clientConnected;
+        sendButton.classList.toggle('disabled', !state.clientConnected);
+        if (state.clientConnected) {
+          setConnectionIndicator('connected', 'Connected (Session Active)');
+          setStatus('Terhubung! Kunci simetris aktif. Silakan pilih dan kirim gambar.', 'success');
+        } else {
+          setConnectionIndicator('closed', 'Closed (Not Connected)');
+          setStatus('Belum terhubung. Klik Connect untuk melakukan TLS Handshake.');
+        }
+      }
+    }
+
+    document.querySelectorAll('.mode-button').forEach((btn) => btn.addEventListener('click', () => setMode(btn.dataset.mode)));
+
+    // ================= CONNECT / START BUTTON =================
+    connectButton.addEventListener('click', async () => {
+      if (!state.api) return setStatus('Desktop bridge belum siap.', 'error');
+      const host = document.querySelector('#host').value.trim() || '127.0.0.1';
+      const port = Number(document.querySelector('#port').value) || 8443;
+
+      if (state.mode === 'client') {
+        if (!state.clientConnected) {
+          // PROSES HANDSHAKE CLIENT KE SERVER
+          connectButton.disabled = true;
+          connectButton.textContent = 'Connecting...';
+          setConnectionIndicator('waiting', 'Performing TLS Handshake...');
+          setStatus('Menjalankan TLS Handshake (RSA-KEM + CA Certificate Verification)...');
+          appendLog(null, 'CLIENT', `Memulai koneksi ke ${host}:${port}...`);
+
+          const result = await state.api.connect_client(host, port);
+          connectButton.disabled = false;
+
+          if (result.status === 'connected') {
+            state.clientConnected = true;
+            connectButton.textContent = 'Disconnect';
+            connectButton.classList.add('danger');
+            setConnectionIndicator('connected', 'Connected');
+
+            if (result.logs) {
+              result.logs.forEach((item) => appendLog(item.time, item.tag, item.msg));
+            }
+
+            sendButton.disabled = false;
+            sendButton.classList.remove('disabled');
+            setStatus('TLS Handshake Sukses! Kedua belah pihak memiliki kunci simetris yang sama. Siap mengirim gambar.', 'success');
+          } else {
+            state.clientConnected = false;
+            connectButton.textContent = 'Connect';
+            connectButton.classList.remove('danger');
+            setConnectionIndicator('closed', 'Closed (Handshake Failed)');
+            appendLog(null, 'ERROR', result.message);
+            setStatus(result.message, 'error');
+          }
+        } else {
+          // DISCONNECT CLIENT
+          const result = await state.api.disconnect_client();
+          state.clientConnected = false;
+          connectButton.textContent = 'Connect';
+          connectButton.classList.remove('danger');
+          setConnectionIndicator('closed', 'Closed');
+          sendButton.disabled = true;
+          sendButton.classList.add('disabled');
+          appendLog(null, 'CLIENT', 'Koneksi TLS diputus oleh pengguna.');
+          setStatus('Koneksi ditutup.');
+        }
+      } else {
+        // SERVER MODE TOGGLE
+        if (!state.serverRunning) {
+          connectButton.disabled = true;
+          const result = await state.api.start_server(host, port);
+          connectButton.disabled = false;
+          if (result.status !== 'error') {
+            state.serverRunning = true;
+            connectButton.textContent = 'Stop server';
+            connectButton.classList.add('danger');
+            setConnectionIndicator('waiting', 'Listening...');
+            setStatus(result.message || `Server mendengarkan di ${host}:${port}.`);
+            startServerWatch();
+          } else {
+            setStatus(result.message, 'error');
+            appendLog(null, 'ERROR', result.message);
+          }
+        } else {
+          connectButton.disabled = true;
+          const result = await state.api.stop_server();
+          connectButton.disabled = false;
+          state.serverRunning = false;
+          connectButton.textContent = 'Start server';
+          connectButton.classList.remove('danger');
+          setConnectionIndicator('closed', 'Server Stopped');
+          setStatus('Server dihentikan.');
+          stopServerWatch();
+        }
+      }
+    });
+
+    // ================= SERVER POLLING =================
+    function startServerWatch() {
+      if (state.serverWatchTimer) clearInterval(state.serverWatchTimer);
+      state.lastServerLogIndex = 0;
+      state.serverWatchTimer = setInterval(async () => {
+        if (!state.api || state.mode !== 'server' || !state.serverRunning) {
+          stopServerWatch();
+          return;
+        }
+        const data = await state.api.get_server_status(state.lastServerLogIndex);
+        if (data.new_logs && data.new_logs.length > 0) {
+          data.new_logs.forEach((item) => appendLog(item.time, item.tag, item.msg));
+          state.lastServerLogIndex = data.total_logs;
+        }
+
+        if (data.server_state === 'connected') {
+          setConnectionIndicator('connected', 'Client Connected');
+        } else if (data.server_state === 'listening') {
+          setConnectionIndicator('waiting', 'Listening for Client...');
+        } else {
+          setConnectionIndicator('closed', 'Idle / Closed');
+        }
+
+        if (data.transfer_id && data.transfer_id !== state.lastTransferId && data.image_url) {
+          state.lastTransferId = data.transfer_id;
+          document.querySelector('#received-placeholder').classList.add('hidden');
+          const previewWrap = document.querySelector('#received-preview-wrap');
+          const previewImg = document.querySelector('#received-preview');
+          previewImg.src = data.image_url;
+          previewWrap.classList.remove('hidden');
+          document.querySelector('#received-meta').textContent = `Received ${data.bytes.toLocaleString()} bytes.`;
+          setStatus(`Gambar #${data.transfer_id} berhasil diterima & didekripsi (${data.bytes.toLocaleString()} bytes).`, 'success');
+        }
+      }, 700);
+    }
+
+    function stopServerWatch() {
+      if (state.serverWatchTimer) {
+        clearInterval(state.serverWatchTimer);
+        state.serverWatchTimer = null;
+      }
+    }
+
+    // ================= IMAGE SELECTION & SEND =================
+    async function chooseImage() {
+      if (!state.api) return setStatus('Desktop bridge belum siap.', 'error');
+      const result = await state.api.select_image();
+      if (result.status === 'cancelled') return;
+      if (result.status === 'error') return setStatus(result.message, 'error');
+      selectedImagePath = result.path;
+      sentPreview.src = result.data_url;
+      sentPreviewWrap.classList.remove('hidden');
+      dropZone.classList.add('hidden');
+      fileName.textContent = result.name;
+    }
+
+    dropZone.addEventListener('click', (event) => {
+      event.preventDefault();
+      chooseImage();
+    });
+
+    document.querySelector('#clear-image').addEventListener('click', () => {
+      imageInput.value = '';
+      selectedImagePath = null;
+      sentPreviewWrap.classList.add('hidden');
+      dropZone.classList.remove('hidden');
+      fileName.textContent = 'No image selected';
+    });
+
+    sendButton.addEventListener('click', async () => {
+      if (!selectedImagePath) return setStatus('Pilih gambar terlebih dahulu.', 'error');
+      if (!state.clientConnected) return setStatus('Harus terhubung (Connect) terlebih dahulu.', 'error');
+      if (!state.api) return setStatus('Desktop bridge belum siap.', 'error');
+
+      sendButton.disabled = true;
+      setStatus('Mengenkripsi dengan kunci simetris dan mengirim gambar...');
+      appendLog(null, 'TRANSFER', `Mengirim file: ${fileName.textContent}...`);
+
+      const result = await state.api.send_image(selectedImagePath);
+      sendButton.disabled = false;
+
+      if (result.status === 'sent') {
+        if (result.logs) {
+          result.logs.forEach((item) => appendLog(item.time, item.tag, item.msg));
+        }
+        setStatus(`Gambar berhasil dikirim (${result.bytes.toLocaleString()} bytes). Sesi TLS tetap aktif.`, 'success');
+      } else {
+        setStatus(result.message, 'error');
+        appendLog(null, 'ERROR', result.message);
+      }
+    });
+
+    // ================= INIT =================
+    window.addEventListener('pywebviewready', async () => {
+      state.api = window.pywebview.api;
+      const result = await state.api.get_initial_state();
+      setStatus('Desktop bridge terhubung. Silakan lakukan handshake dengan tombol Connect.');
+      appendLog(null, 'INFO', 'Pywebview Desktop bridge connected.');
+    });
+  </script>
 </body>
 </html>

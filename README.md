@@ -3,116 +3,184 @@
   <img src="docs/img/banner.png" alt="Repository Banner" width="100%">
 </p>
 
-## Dependencies:
-- numpy>=2.5.4,
-- pillow>=12.3.0,
-- streamlit>=1.66.0
+RSA Send is a application for sending images over an encrypted TCP connection using TLS layer architeture. Using an implementasion of RSA-KEM Key Exchange for the better solution for RSA Key transport.
+
+## Dependencies
+- `cryptography>=50.0.2`
+- `numpy>=2.5.4`
+- `pillow>=12.3.0`
+- `pywebview>=5.4`
 
 
-## Project Setup
-### Required
+## Installation
+### Requirements
 - [git](https://git-scm.com/)
-- Python > 3.10
-- uv
+- Python >= 3.12
+- [uv](https://docs.astral.sh/uv/)
+- A desktop environment that supports `pywebview`
 
-1. You need to install uv first if not yet:
+1. Install `uv` if it is not already available:
 	- Windows (PowerShell)
 	```bash
-	powershell -c "iwr [https://astral.sh/uv/install.ps1](https://astral.sh/uv/install.ps1) | iex"
+	powershell -c "iwr https://astral.sh/uv/install.ps1 | iex"
 	```
 	- Mac/Linux
 	```bash
-	curl -LsSf [https://astral.sh/uv/install.sh](https://astral.sh/uv/install.sh) | sh
+	curl -LsSf https://astral.sh/uv/install.sh | sh
 	```
-2. Clone this repository
+2. Clone the repository:
 	```
 	git clone <URL_REPOSITORY_GITHUB_KELOMPOK>
 	cd RSA_send
 	```
 
-3. Run uv sync
+3. Install dependencies:
 	```
 	uv sync
 	```
 
-## Developing Rules
-#### KALO BIKIN FITUR BUAT DI BRANCH BARU, PUSH DI MAIN TANPA PULL REQUEST = DI HANTAM
+4. Launch the application:
+	```
+	uv run rsa-send
+	```
 
-#### KALO BIKIN COMMIT MESSAGE PAKE CONVENTION:
-| Tipe | Kegunaan | Contoh Deskripsi |
+## Usage
+
+Run one instance as the Server and another as the Client. Use the same host and port
+for both instances. For local testing, use `127.0.0.1:8443`.
+
+### Server
+1. Select **Server** mode.
+2. Enter the host and port to use.
+3. Click **Start server** and wait for the `Listening` status.
+
+### Client
+1. Select **Client** mode.
+2. Enter the Server host and port.
+3. Click **Connect** to start the handshake.
+4. After the connection is established, select an image using **Choose an image**.
+5. Click **Send image**.
+
+The Server receives the encrypted payload, decrypts it using the session traffic key,
+and reconstructs the raw bytes as an image in the **Received image** panel.
+
+## Architecture Overview
+
+<p align="center">
+	<img src="docs/Project%20Architeture.svg" alt="RSA Send project architecture" width="95%">
+</p>
+
+The session key is never transmitted directly. The Client encapsulates an RSA-KEM
+ciphertext using the Server public key. The Server decapsulates it with its CRT private
+key, and both sides derive the same traffic key using HKDF and both random values as salt.
+
+## Screenshots
+
+### Main Interface
+<p align="center">
+	<img src="docs/img/Interface.png" alt="RSA Send main interface" width="90%">
+</p>
+
+### Client: Connection and Handshake
+<p align="center">
+	<img src="docs/img/Client%20Connect.png" alt="Client connection and handshake" width="90%">
+</p>
+
+### Client: Sending an Image
+<p align="center">
+	<img src="docs/img/Client%20Send.png" alt="Client sending an image" width="90%">
+</p>
+
+### Server: Opening a Connection
+<p align="center">
+	<img src="docs/img/Server%20Open%20Connection.png" alt="Server opening a connection" width="90%">
+</p>
+
+### Server: Receiving an Image
+<p align="center">
+	<img src="docs/img/Server%20Recieve.png" alt="Server receiving and reconstructing an image" width="90%">
+</p>
+
+## TODO
+
+### Modular Math (Pandu & Haidar)
+- [x] `miller_rabin(n, k)` — Parameters: `n`, `k`; Expected Output: `bool` indicating whether `n` is probably prime.
+- [x] `mod_pow(base, exp, mod)` — Parameters: `base`, `exp`, `mod`; Expected Output: `int` modular exponentiation result.
+- [x] `mod_invers(a, b)` — Parameters: `a`, `b`; Expected Output: `int` modular inverse of `a` modulo `b`.
+- [x] `generate_prime(bits)` — Parameters: `bits`; Expected Output: `int` prime number with the requested bit length.
+- [x] `ext_gcd(a, b)` — Parameters: `a`, `b`; Expected Output: tuple `(gcd, x, y)` satisfying `a*x + b*y = gcd`.
+- [x] `crt_reconstruct(m_p, m_q, p, q, q_inv)` — Parameters: `m_p`, `m_q`, `p`, `q`, `q_inv`; Expected Output: `int` CRT reconstruction result.
+
+### Cryptography (Azzam & Ikhsan)
+- [x] `hkdf_extract(salt, ikm, hash_alg)` — Parameters: `salt`, `ikm`, `hash_alg`; Expected Output: `bytes` pseudorandom key. (Ikhsan)
+- [x] `hkdf_expand(prk, info, length, hash_alg)` — Parameters: `prk`, `info`, `length`, `hash_alg`; Expected Output: `bytes` traffic key with the requested length. (Ikhsan)
+- [x] `rsa_generate_key_crt(bits)` — Parameters: `bits`; Expected Output: tuple `(public_key, private_key_crt)`. (Azzam)
+- [x] `rsa_kem_encapsulate(public_key, key_len, salt)` — Parameters: `public_key`, `key_len`, `salt`; Expected Output: tuple `(ciphertext, traffic_key)`. (Azzam)
+- [x] `rsa_kem_decapsulate_crt(c_input, private_key_crt, key_len, salt)` — Parameters: `c_input`, `private_key_crt`, `key_len`, `salt`; Expected Output: `bytes` traffic key. (Azzam)
+- [x] `sign_certificate(server_pub_key, ca_priv_key)` — Parameters: `server_pub_key`, `ca_priv_key`; Expected Output: `int` certificate signature. (Ikhsan)
+- [x] `verify_certificate(server_pub_key, signature, ca_pub_key)` — Parameters: `server_pub_key`, `signature`, `ca_pub_key`; Expected Output: `bool` certificate verification result. (Ikhsan)
+
+### Image Processing (Ikhsan)
+- [x] `ImageProcessor(image_path)` — Parameters: `image_path`; Expected Output: image processor object.
+- [x] `ImageProcessor.to_bytes()` — Parameters: none; Expected Output: tuple `(raw_bytes, shape, dtype)`.
+- [x] `ImageProcessor.to_image(raw_bytes, shape, dtype)` — Parameters: `raw_bytes`, `shape`, `dtype`; Expected Output: `PIL.Image` object.
+- [x] `chunk(data, chunk_size)` — Parameters: `data`, `chunk_size`; Expected Output: `list[bytes]` data chunks.
+- [x] `chunks_join(chunks)` — Parameters: `chunks`; Expected Output: combined `bytes` data.
+
+### Network and TLS Record Layer (Ikhsan)
+- [x] `send_exact(sock, data)` — Parameters: `sock`, `data`; Expected Output: all data sent through the socket.
+- [x] `recv_exact(sock, length)` — Parameters: `sock`, `length`; Expected Output: `bytes` with the requested length.
+- [x] `unpack_image_payload(payload)` — Parameters: `payload`; Expected Output: tuple `(raw_bytes, shape, dtype)`.
+- [x] `TLSRecordLayer.send_record(sock, raw_data)` — Parameters: `sock`, `raw_data`; Expected Output: encrypted record sent.
+- [x] `TLSRecordLayer.recv_record(sock)` — Parameters: `sock`; Expected Output: decrypted `bytes` for one record.
+- [x] `TLSRecordLayer.send_message(sock, raw_data)` — Parameters: `sock`, `raw_data`; Expected Output: framed and encrypted message sent.
+- [x] `TLSRecordLayer.recv_message(sock)` — Parameters: `sock`; Expected Output: complete decrypted message as `bytes`.
+- [x] `TLSClientSession.perform_handshake()` — Parameters: none; Expected Output: `list[dict]` handshake logs and an active TLS session.
+- [x] `TLSClientSession.send_image(image_bytes, shape, dtype)` — Parameters: `image_bytes`, `shape`, `dtype`; Expected Output: `list[dict]` image-transfer logs.
+- [x] `TLSServerNetwork.start_listening()` — Parameters: none; Expected Output: server socket listening for connections.
+- [x] `TLSServerNetwork.accept_client_and_handshake(log_fn)` — Parameters: `log_fn`; Expected Output: tuple `(socket, record_layer, client_address)`.
+
+### Application Bridge and User Interface (Ikhsan, Azzam, Pandu, Haidar)
+- [x] Design UI UX (Azzam, Pandu, Haidar)
+- [x] Implement Design Using HTML and CSS (Azzam)
+- [x] `Bridge.select_image()` — Parameters: none; Expected Output: `dict` containing image status, metadata, and preview. (Ikhsan)
+- [x] `Bridge.connect_client(host, port)` — Parameters: `host`, `port`; Expected Output: `dict` containing connection status and handshake logs. (Ikhsan)
+- [x] `Bridge.disconnect_client()` — Parameters: none; Expected Output: `dict` containing disconnection status. (Ikhsan)
+- [x] `Bridge.send_image(image_path)` — Parameters: `image_path`; Expected Output: `dict` containing transfer status and metadata. (Ikhsan)
+- [x] `Bridge.start_server(host, port)` — Parameters: `host`, `port`; Expected Output: `dict` containing server status. (Ikhsan)
+- [x] `Bridge.stop_server()` — Parameters: none; Expected Output: `dict` containing stopped-server status. (Ikhsan)
+- [x] `Bridge.get_server_status(last_log_index)` — Parameters: `last_log_index`; Expected Output: `dict` containing server status, new logs, and image metadata. (Ikhsan)
+
+
+## Contribution Guidelines
+Use a separate branch for each feature or fix. Changes to the main branch must go
+through a pull request.
+
+Use Conventional Commits:
+| Type | Purpose | Example |
 | :--- | :--- | :--- |
-| `feat` | Menambahkan fitur baru ke dalam kode. | `feat(auth): add google login integration` |
-| `fix` | Memperbaiki bug atau masalah teknis. | `fix(api): resolve memory leak on user fetch` |
-| `docs` | Hanya mengubah dokumen atau berkas *markdown*. | `docs: update setup instructions in README` |
-| `style` | Perubahan format kode (spasi, titik koma) tanpa mengubah fungsi. | `style: run prettier formatter on all files` |
-| `refactor` | Mengubah kode tanpa menambah fitur ataupun memperbaiki bug. | `refactor: simplify user validation logic` |
-| `perf` | Perubahan kode khusus untuk meningkatkan performa. | `perf: optimize database query indexing` |
-| `test` | Menambah atau memperbaiki kode pengujian (*unit test*). | `test: add edge case tests for checkout flow` |
-| `build` | Perubahan pada sistem build, dependensi, atau skrip eksternal. | `build: upgrade react version to 19` |
-| `chore` | Pekerjaan rutin lainnya yang tidak mengubah kode aplikasi. | `chore: release version 1.2.0` |
+| `feat` | Add a new feature. | `feat(auth): add google login integration` |
+| `fix` | Fix a bug or technical issue. | `fix(api): resolve memory leak on user fetch` |
+| `docs` | Update documentation or Markdown files. | `docs: update setup instructions in README` |
+| `style` | Change formatting without changing behavior. | `style: run prettier formatter on all files` |
+| `refactor` | Restructure code without changing behavior. | `refactor: simplify user validation logic` |
+| `perf` | Improve performance. | `perf: optimize database query indexing` |
+| `test` | Add or update tests. | `test: add edge case tests for checkout flow` |
+| `build` | Change build systems, dependencies, or tooling. | `build: upgrade react version to 19` |
+| `chore` | Perform routine maintenance. | `chore: release version 1.2.0` |
 
-## Three way pass protocol flows
-![flow](docs/img/Screenshot%202026-10-20%20003248.png)
+## AI Usage and Fair Use
+AI tools were used **only as assistants during frontend development**, The project architecture, backend,
+cryptographic implementation, integration, testing, and final review were handled
+and verified by the development team.
 
-## TODO:
-**Math** 
-- [ ] Modul GCD, Buat ngitung GCD, Parameter: a, b, Expected Output: integer hasilGCD, [s, t] dengan s dan t adalah koefisien bezhout 
-- [ ] Modul miller_rabin, Buat ngecek Bilangan Prima 
-- [ ] Modul generate_primes, Buat generate angka bilangan Prima, Parameter: bits (ukuran bit bilangan prima), Expected Output: integer a (dengan a adalah bilangan prima)
-- [ ] Modul mod_inverse, Buat mencari inverse dari a mod b , Parameter: a. b, Expected Output: x (dengan x adalah inversnya), Dependencies: GCD
+## Contributors
+Muhammad Azzam Al Farizi - L0125023
+Ikhsan Raditya Purnawarman - L0125103
+Pandu Jatu Pradityo - L0125111
+Haidar Ihda Chusnayain - L0125082
 
-**Cryptography : Dependencies: Math**
-- [ ] Modul generate_key, Parameter: bits (buat di pasing ke module generate primes), Expected Output: [(e, n), (d, n)] dengan d dan e adalah decryptor dan encryptor.
-- [ ] Modul encrypt, Paramater: M, e, n (dengan M adalah Plain text, proses chunking per blocknya ngga di sini, modul ini khusus buat ngecrypt apa yang diberikan ke parameternya aja) Expected Output: integer C (dengan C adalah Chiper Text)
-- [ ] Modul decrypt, Paramater: C, d, n (dengan C adalah chiper text), Expected Output: int M (dengan M adalah plaintext)
 
-**Pengolahan Citra (Pake Class): Dependencies: numpy, pillow (external libraries)**
-- Class ImageProcessor:
-	- [ ] Constructor, Parameter: image_path // Simpan Image Path sebagai attribute Object
-        Expected Output: Object
-            self.image_path = image_path
-            self.original_shape = None
-            self.total_bytes = 0
-            self.raw_bytes = None
-            self.chunks = None
-		
-	- [ ] method .to_bytes, buat ngeconvert gamabr jadi bytes pake numpy, Paramater: , Expected Output: Array[bytes], totalBytes
-	- [ ] method .chunk, buat nge chunking bytes nya menjadi block, Paramater: n (n itu dari public key (e, n)), Expected Output: List[chunks] (hasil byte dalam bentuk block dari hasil chunking)
-	*PS: Note: Rumus Chunking ((bit_length(n) - 1) // 8) ukuran bit dari n di bagi 8, karena dibagi ke dalam satuan byte*
-	- [ ] method .join, Paramater: chunks, nbuat ngegabungin bentuk chunk jadi bentuk bytes lagi, Expected output: Array[bytes]
-	- [ ] method .to_image, Paramater: bytes, output_path buat ngebalikin bytes jadi gambar
-	
-	*PS: Dapat berubah tergantung design atau cara orang yang nulis, tapi kurang lebih methodnya itu.*
-
-// Ribet
-**Network : Dependencies: socket, json, struct (python internal libraries)**
-- Class NetworkNode:
-	- [ ] Constructor, Parameter: host='127.0.0.1', port=5000 // Simpan IP dan Port sebagai attribute Object
-		Expected Output: Object
-		self.host = host
-		self.port = port
-
-	- [ ] method .send_payload, buat ngirim payload data JSON ke node lawan dan nunggu balasan, Parameter: target_host, target_port, payload_dict, Expected Output: dict (respon balik dari penerima)
-		PS: Note: Ngirim pake header 4-byte (struct.pack) di depan payload biar JSON ga terpotong saat transmisi soket
-
-	- [ ] method .start_server, buat ngejalanin server soket mendengarkan data masuk, Parameter: handle_callback_func, Expected Output: None (looping listener)
-
-	- [ ] private method ._receive_exact_payload, buat baca byte data secara utuh sesuai panjang di header, Parameter: sock, Expected Output: dict (payload JSON terdecode)
-
-	PS: Masih nentuin bentuk data pas dikirimnya, list/array atau dalamm bentuk string. Mempertimbangkan buat menggunakan list/array biar mempermudah
-	
-**UI/UX Dependencies: streamlit** 
- 
-- Fitur Utama:
-    - [ ] Image Input Section: Buat Input Image
-    - [ ] Connect to Socket : Section buat isi IP / Port Buat Connect dan nembak ke server socket pengirim / penerima
-    - [ ] Public Key and Private Key: Tampilin Public key dan private key masing masing client 
-    - [ ] Tambahin Toggle buat matiin Enkripsi (PS: Ini fitur juga harus nambahin implementasi di network)
-    - [ ] Image Viewer: Buat ngeliat imagenya
-            opsional:  Dibikin stream, jadi keliatan setiap byte data yang masuk langsung dirender ke client, tapi ini harus namabahin implementasi dari Pengolahan Citra
-    - [ ] Opsional: tambahin fitur buat jalanin flow step by step (Nanti lah kalo dah jadi dulu)
-
-sisanya Se kreatifnya ajah
 
 ## License
-Do whatever u want
+This project is intended for development and educational purposes.
