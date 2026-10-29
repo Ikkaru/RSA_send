@@ -8,11 +8,6 @@
 </head>
 <body>
 
-  <!-- Pemilih tab (CSS murni). Harus berada langsung di bawah body, sebelum .tabs dan main -->
-  <input class="pilih" type="radio" name="tab" id="t-kirim" checked>
-  <input class="pilih" type="radio" name="tab" id="t-terima">
-  <input class="pilih" type="radio" name="tab" id="t-alur">
-
   <header class="top">
     <div class="wrap">
       <h1>RSA Send</h1>
@@ -20,132 +15,124 @@
     </div>
   </header>
 
-  <nav class="tabs" aria-label="Menu utama">
-    <div class="wrap">
-      <label for="t-kirim">Kirim</label>
-      <label for="t-terima">Terima</label>
-      <label for="t-alur">Alur protokol</label>
-    </div>
-  </nav>
-
   <main class="wrap">
 
-    <!-- ===================== KIRIM (CLIENT) ===================== -->
-    <section class="panel" id="kirim">
-      <h2>Kirim citra</h2>
-      <p class="intro">Sisi client. Pilih citra, tentukan parameter, lalu kirim ke server.</p>
+    <!-- Satu form untuk sidebar dan area gambar.
+         Tombol Open Connection dan Send memakai formaction masing-masing.
+         Sesuaikan alamat route dengan backend. -->
+    <form class="app" action="/kirim" method="post" enctype="multipart/form-data">
 
-      <!-- Sambungkan action ke route backend, misalnya /kirim -->
-      <form class="form" action="/kirim" method="post" enctype="multipart/form-data">
+      <!-- ===================== SIDEBAR ===================== -->
+      <aside class="side" aria-label="Pengaturan koneksi">
+
+        <div class="mode" role="radiogroup" aria-label="Mode">
+          <input class="pilih" type="radio" name="mode" id="m-client" value="client" checked>
+          <label for="m-client">Client</label>
+          <input class="pilih" type="radio" name="mode" id="m-server" value="server">
+          <label for="m-server">Server</label>
+        </div>
 
         <div class="field">
-          <label for="gambar">Citra</label>
-          <input id="gambar" type="file" name="gambar" accept="image/*" required>
-          <p class="info">Format gambar umum seperti PNG atau JPG.</p>
+          <label for="ip">IP</label>
+          <input id="ip" type="text" name="ip" placeholder="127.0.0.1" autocomplete="off">
         </div>
 
-        <div class="row">
-          <div class="field">
-            <label for="bits">Ukuran kunci RSA</label>
-            <select id="bits" name="bits">
-              <option value="1024">1024 bit</option>
-              <option value="2048" selected>2048 bit</option>
-              <option value="3072">3072 bit</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="key_len">Panjang kunci AES</label>
-            <select id="key_len" name="key_len">
-              <option value="16">16 byte (AES-128)</option>
-              <option value="32" selected>32 byte (AES-256)</option>
-            </select>
-          </div>
+        <div class="field">
+          <label for="port">Port</label>
+          <input id="port" type="text" name="port" inputmode="numeric" placeholder="5000" autocomplete="off">
         </div>
 
-        <details class="lanjut">
-          <summary>Pengaturan lanjutan</summary>
-          <div class="field">
-            <label for="salt">Salt HKDF</label>
-            <input id="salt" type="text" name="salt">
-            <p class="info">Boleh dikosongkan. Server dan client harus memakai salt yang sama.</p>
+        <button class="btn btn-garis" type="submit" formaction="/koneksi" formnovalidate>Open Connection</button>
+
+        <h2>Konfigurasi</h2>
+
+        <div class="field">
+          <label for="bits">Ukuran kunci RSA (bit)</label>
+          <select id="bits" name="bits">
+            <option value="1024">1024</option>
+            <option value="2048" selected>2048</option>
+            <option value="3072">3072</option>
+          </select>
+        </div>
+      </aside>
+
+      <!-- ===================== GAMBAR ===================== -->
+      <div class="gambar">
+
+        <section class="kolom">
+          <h2>Gambar terkirim</h2>
+          <label class="dropzone">
+            <input type="file" name="gambar" accept="image/*" required>
+            <svg class="panah" viewBox="0 0 24 24" width="28" height="28" aria-hidden="true">
+              <path d="M12 19V5M5.5 11.5L12 5l6.5 6.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span class="judul">Pilih atau seret gambar ke sini</span>
+            <span class="catatan">PNG, JPG, dan format gambar lain</span>
+          </label>
+        </section>
+
+        <section class="kolom">
+          <h2>Gambar diterima</h2>
+          <div class="diterima">
+            <span>Belum ada gambar diterima</span>
           </div>
-          <div class="field">
-            <label for="aad">Data tambahan (AAD)</label>
-            <input id="aad" type="text" name="aad">
-            <p class="info">Boleh dikosongkan. Ikut diautentikasi oleh AES-GCM tetapi tidak dienkripsi.</p>
-          </div>
-        </details>
+        </section>
 
-        <button class="btn" type="submit">Enkripsi dan kirim</button>
-      </form>
-    </section>
-
-    <!-- ===================== TERIMA (SERVER) ===================== -->
-    <section class="panel" id="terima">
-      <h2>Terima citra</h2>
-      <p class="intro">Sisi server. Menampilkan data yang diterima dan hasil dekripsinya.</p>
-
-      <table class="tabel">
-        <tbody>
-          <tr><th scope="row">Status</th><td>Menunggu kiriman</td></tr>
-          <tr><th scope="row">Kunci publik (e, n)</th><td class="mono">belum dibangkitkan</td></tr>
-          <tr><th scope="row">Ciphertext KEM (C)</th><td class="mono">belum ada</td></tr>
-          <tr><th scope="row">Sidik jari kunci AES</th><td class="mono">belum ada</td></tr>
-          <tr><th scope="row">Tag autentikasi</th><td class="mono">belum ada</td></tr>
-        </tbody>
-      </table>
-
-      <div class="dua">
-        <figure>
-          <div class="kotak">Citra terenkripsi</div>
-          <figcaption>Data yang melintas di jaringan</figcaption>
-        </figure>
-        <figure>
-          <div class="kotak">Citra hasil dekripsi</div>
-          <figcaption>Citra yang diterima server</figcaption>
-        </figure>
+        <div class="kirim">
+          <button class="btn" type="submit">Send</button>
+        </div>
       </div>
-    </section>
 
-    <!-- ===================== ALUR PROTOKOL ===================== -->
-    <section class="panel" id="alur">
-      <h2>Alur protokol</h2>
-      <p class="intro">Klik langkah untuk melihat penjelasannya.</p>
+    </form>
 
-      <div class="langkah">
-        <details>
-          <summary><span class="no">1</span> Buat kunci</summary>
-          <p>Server membuat pasangan kunci RSA beserta parameter CRT <code>dp</code>, <code>dq</code>, dan <code>q_inv</code>.</p>
-          <p class="fn">rsa_generate_key_crt</p>
-        </details>
-        <details>
-          <summary><span class="no">2</span> Enkapsulasi</summary>
-          <p>Client memilih angka acak <code>z</code>, lalu menghitung <code>C = z<sup>e</sup> mod n</code>.</p>
-          <p class="fn">rsa_kem_encapsulate</p>
-        </details>
-        <details>
-          <summary><span class="no">3</span> Turunkan kunci AES</summary>
-          <p>HKDF mengubah <code>z</code> menjadi kunci simetris dengan panjang 16 atau 32 byte.</p>
-          <p class="fn">hkdf_extract, hkdf_expand</p>
-        </details>
-        <details>
-          <summary><span class="no">4</span> Enkripsi citra</summary>
-          <p>AES-GCM mengenkripsi citra dan menghasilkan ciphertext beserta tag autentikasi.</p>
-          <p class="fn">aead_encrypt_decrypt</p>
-        </details>
-        <details>
-          <summary><span class="no">5</span> Dekapsulasi</summary>
-          <p>Server memulihkan <code>z</code> dengan CRT, lalu menurunkan kunci AES yang sama.</p>
-          <p class="fn">rsa_kem_decapsulate_crt</p>
-        </details>
-        <details>
-          <summary><span class="no">6</span> Dekripsi citra</summary>
-          <p>Tag diperiksa. Jika cocok, ciphertext dikembalikan menjadi citra asli.</p>
-          <p class="fn">aead_encrypt_decrypt</p>
-        </details>
-      </div>
-    </section>
+    <hr class="pemisah">
 
+    <!-- ===================== DIAGRAM DAN LOG ===================== -->
+    <div class="bawah">
+
+      <section class="diagram" aria-labelledby="jd-diagram">
+        <h2 id="jd-diagram">Diagram waktu nyata</h2>
+
+        <div class="diagram-isi">
+          <svg viewBox="0 0 340 290" role="img" aria-label="Diagram urutan pesan antara client dan server">
+            <defs>
+              <marker id="kepala" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0 0L10 5L0 10z" class="isi-panah"/>
+              </marker>
+            </defs>
+
+            <rect x="15" y="8" width="110" height="38" class="kotak-svg"/>
+            <text x="70" y="32" text-anchor="middle">Client</text>
+            <rect x="215" y="8" width="110" height="38" class="kotak-svg"/>
+            <text x="270" y="32" text-anchor="middle">Server</text>
+
+            <line x1="70" y1="46" x2="70" y2="285" class="garis-hidup"/>
+            <line x1="270" y1="46" x2="270" y2="285" class="garis-hidup"/>
+
+            <line x1="266" y1="100" x2="74" y2="100" class="panah-svg" marker-end="url(#kepala)"/>
+            <text x="170" y="92" text-anchor="middle" class="label-svg">1. Kunci publik (e, n)</text>
+
+            <line x1="74" y1="170" x2="266" y2="170" class="panah-svg" marker-end="url(#kepala)"/>
+            <text x="170" y="162" text-anchor="middle" class="label-svg">2. C + citra terenkripsi + tag</text>
+
+            <line x1="266" y1="240" x2="74" y2="240" class="panah-svg" marker-end="url(#kepala)"/>
+            <text x="170" y="232" text-anchor="middle" class="label-svg">3. Konfirmasi</text>
+          </svg>
+
+          <ul class="detail">
+            <li><span>Kunci publik</span><b class="mono">belum ada</b></li>
+            <li><span>Ciphertext KEM (C)</span><b class="mono">belum ada</b></li>
+            <li><span>Kunci AES</span><b class="mono">belum ada</b></li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="log" aria-labelledby="jd-log">
+        <h2 id="jd-log">Log</h2>
+        <pre class="log-isi" aria-live="polite">Menunggu koneksi...</pre>
+      </section>
+
+    </div>
   </main>
 
   <footer class="wrap foot">RSA Send &middot; Proyek Matematika Diskrit</footer>
