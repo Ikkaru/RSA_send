@@ -1,0 +1,202 @@
+:root {
+  --page: #edf0ec;
+  --sheet: #fbfcfa;
+  --ink: #1e2622;
+  --muted: #5b6760;
+  --line: #cfd6cf;
+  --field: #f3f6f2;
+  --green: #2e5a4b;
+  --green-dark: #22443a;
+  --ochre: #96691d;
+  --mono: Consolas, 'Courier New', monospace;
+  --sans: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+h1, h2 { font-family: var(--sans); font-weight: 700; letter-spacing: -0.01em; }
+
+code {
+  font-family: var(--mono);
+  font-size: 0.85em;
+  background: #e3e9e3;
+  padding: 1px 5px;
+}
+
+.wrap { max-width: 720px; margin: 0 auto; padding: 0 20px; }
+
+/* ---------- Kepala ---------- */
+.top { padding: 40px 0 18px; }
+.top .wrap { border-bottom: 2px solid var(--ink); padding-bottom: 14px; }
+.top h1 { font-size: 2.2rem; line-height: 1.15; }
+.top p { margin-top: 6px; color: var(--muted); font-size: 0.98rem; }
+
+/* ---------- Tab (CSS murni) ---------- */
+/* Radio disembunyikan secara visual, tetap bisa difokus dengan keyboard */
+.pilih {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.tabs { padding-top: 6px; }
+.tabs .wrap { display: flex; gap: 26px; }
+.tabs label {
+  padding: 8px 0 6px;
+  border-bottom: 2px solid transparent;
+  font-weight: 500;
+  color: var(--muted);
+  cursor: pointer;
+}
+.tabs label:hover { color: var(--ink); }
+
+/* Tab aktif */
+#t-kirim:checked   ~ .tabs label[for="t-kirim"],
+#t-terima:checked  ~ .tabs label[for="t-terima"],
+#t-alur:checked    ~ .tabs label[for="t-alur"] {
+  color: var(--green);
+  font-weight: 700;
+  border-bottom-color: var(--green);
+}
+
+/* Fokus keyboard */
+#t-kirim:focus-visible   ~ .tabs label[for="t-kirim"],
+#t-terima:focus-visible  ~ .tabs label[for="t-terima"],
+#t-alur:focus-visible    ~ .tabs label[for="t-alur"] {
+  outline: 2px solid var(--green);
+  outline-offset: 3px;
+}
+
+/* Panel: hanya yang terpilih yang tampil */
+.panel { display: none; margin-bottom: 28px; }
+#t-kirim:checked   ~ main #kirim,
+#t-terima:checked  ~ main #terima,
+#t-alur:checked    ~ main #alur { display: block; }
+
+/* ---------- Lembar isi ---------- */
+main {
+  max-width: 720px;
+  margin: 14px auto 0;
+  padding: 30px 20px 6px;
+  background: var(--sheet);
+  border: 1px solid var(--line);
+}
+.panel h2 { font-size: 1.4rem; margin-bottom: 4px; }
+.intro { color: var(--muted); margin-bottom: 24px; }
+
+/* ---------- Form ---------- */
+.form { display: flex; flex-direction: column; gap: 18px; }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 4px; }
+.field label { font-weight: 700; font-size: 0.93rem; }
+.info { font-size: 0.85rem; color: var(--muted); }
+
+input[type="text"], input[type="file"], select {
+  width: 100%;
+  background: var(--field);
+  color: var(--ink);
+  border: 1px solid #aab4ab;
+  border-radius: 2px;
+  padding: 9px 11px;
+  font: inherit;
+  font-size: 0.95rem;
+}
+input[type="file"]::file-selector-button {
+  background: var(--sheet);
+  color: var(--green-dark);
+  border: 1px solid var(--green);
+  border-radius: 2px;
+  padding: 4px 12px;
+  margin-right: 12px;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+input[type="text"]:focus, input[type="file"]:focus, select:focus {
+  outline: 2px solid var(--green);
+  outline-offset: 0;
+  border-color: var(--green);
+}
+
+.lanjut { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 11px 0; }
+.lanjut summary { cursor: pointer; font-weight: 700; font-size: 0.95rem; color: var(--green-dark); }
+.lanjut summary:hover { color: var(--green); }
+.lanjut[open] summary { margin-bottom: 14px; }
+
+.btn {
+  align-self: flex-start;
+  background: var(--green);
+  color: #fff;
+  border: 0;
+  border-radius: 2px;
+  padding: 11px 24px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.btn:hover { background: var(--green-dark); }
+.btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+/* ---------- Tabel server ---------- */
+.tabel { width: 100%; border-collapse: collapse; margin-bottom: 26px; }
+.tabel th, .tabel td { text-align: left; padding: 10px 4px; border-bottom: 1px solid var(--line); font-size: 0.95rem; vertical-align: top; }
+.tabel tr:first-child th, .tabel tr:first-child td { border-top: 1px solid var(--ink); }
+.tabel th { width: 42%; font-weight: 500; color: var(--muted); }
+.tabel td { word-break: break-all; }
+.mono { font-family: var(--mono); font-size: 0.82rem; }
+
+.dua { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.kotak {
+  aspect-ratio: 4 / 3;
+  display: grid;
+  place-items: center;
+  background: var(--field);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 8px;
+}
+.kotak img { width: 100%; height: 100%; object-fit: cover; }
+figcaption { margin-top: 6px; font-size: 0.85rem; color: var(--muted); }
+
+/* ---------- Alur ---------- */
+.langkah { margin-bottom: 8px; }
+.langkah details { border-bottom: 1px solid var(--line); padding: 13px 0; }
+.langkah details:first-child { border-top: 1px solid var(--ink); }
+.langkah summary { cursor: pointer; font-weight: 700; }
+.langkah summary:hover { color: var(--green); }
+.no {
+  display: inline-block;
+  min-width: 1.7em;
+  color: var(--ochre);
+  font-family: var(--sans);
+  font-weight: 700;
+}
+.langkah details p { margin: 8px 0 0 1.7em; color: var(--muted); font-size: 0.95rem; }
+.langkah .fn { font-family: var(--mono); font-size: 0.82rem; color: var(--green-dark); }
+
+/* ---------- Kaki ---------- */
+.foot { padding-top: 20px; padding-bottom: 32px; color: var(--muted); font-size: 0.85rem; }
+
+/* ---------- Responsif ---------- */
+@media (max-width: 760px) {
+  main { margin-top: 10px; border-left: 0; border-right: 0; }
+}
+@media (max-width: 560px) {
+  .row, .dua { grid-template-columns: 1fr; }
+  .tabel th { width: 38%; }
+  .tabs .wrap { gap: 18px; }
+  .top h1 { font-size: 1.9rem; }
+}

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RSA Send</title>
+  <link rel="stylesheet" href="static/css/style.css">
+</head>
+<body>
+
+  <!-- Pemilih tab (CSS murni). Harus berada langsung di bawah body, sebelum .tabs dan main -->
+  <input class="pilih" type="radio" name="tab" id="t-kirim" checked>
+  <input class="pilih" type="radio" name="tab" id="t-terima">
+  <input class="pilih" type="radio" name="tab" id="t-alur">
+
+  <header class="top">
+    <div class="wrap">
+      <h1>RSA Send</h1>
+      <p>Pengiriman citra dengan RSA-KEM, CRT, HKDF, dan AES-GCM</p>
+    </div>
+  </header>
+
+  <nav class="tabs" aria-label="Menu utama">
+    <div class="wrap">
+      <label for="t-kirim">Kirim</label>
+      <label for="t-terima">Terima</label>
+      <label for="t-alur">Alur protokol</label>
+    </div>
+  </nav>
+
+  <main class="wrap">
+
+    <!-- ===================== KIRIM (CLIENT) ===================== -->
+    <section class="panel" id="kirim">
+      <h2>Kirim citra</h2>
+      <p class="intro">Sisi client. Pilih citra, tentukan parameter, lalu kirim ke server.</p>
+
+      <!-- Sambungkan action ke route backend, misalnya /kirim -->
+      <form class="form" action="/kirim" method="post" enctype="multipart/form-data">
+
+        <div class="field">
+          <label for="gambar">Citra</label>
+          <input id="gambar" type="file" name="gambar" accept="image/*" required>
+          <p class="info">Format gambar umum seperti PNG atau JPG.</p>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label for="bits">Ukuran kunci RSA</label>
+            <select id="bits" name="bits">
+              <option value="1024">1024 bit</option>
+              <option value="2048" selected>2048 bit</option>
+              <option value="3072">3072 bit</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="key_len">Panjang kunci AES</label>
+            <select id="key_len" name="key_len">
+              <option value="16">16 byte (AES-128)</option>
+              <option value="32" selected>32 byte (AES-256)</option>
+            </select>
+          </div>
+        </div>
+
+        <details class="lanjut">
+          <summary>Pengaturan lanjutan</summary>
+          <div class="field">
+            <label for="salt">Salt HKDF</label>
+            <input id="salt" type="text" name="salt">
+            <p class="info">Boleh dikosongkan. Server dan client harus memakai salt yang sama.</p>
+          </div>
+          <div class="field">
+            <label for="aad">Data tambahan (AAD)</label>
+            <input id="aad" type="text" name="aad">
+            <p class="info">Boleh dikosongkan. Ikut diautentikasi oleh AES-GCM tetapi tidak dienkripsi.</p>
+          </div>
+        </details>
+
+        <button class="btn" type="submit">Enkripsi dan kirim</button>
+      </form>
+    </section>
+
+    <!-- ===================== TERIMA (SERVER) ===================== -->
+    <section class="panel" id="terima">
+      <h2>Terima citra</h2>
+      <p class="intro">Sisi server. Menampilkan data yang diterima dan hasil dekripsinya.</p>
+
+      <table class="tabel">
+        <tbody>
+          <tr><th scope="row">Status</th><td>Menunggu kiriman</td></tr>
+          <tr><th scope="row">Kunci publik (e, n)</th><td class="mono">belum dibangkitkan</td></tr>
+          <tr><th scope="row">Ciphertext KEM (C)</th><td class="mono">belum ada</td></tr>
+          <tr><th scope="row">Sidik jari kunci AES</th><td class="mono">belum ada</td></tr>
+          <tr><th scope="row">Tag autentikasi</th><td class="mono">belum ada</td></tr>
+        </tbody>
+      </table>
+
+      <div class="dua">
+        <figure>
+          <div class="kotak">Citra terenkripsi</div>
+          <figcaption>Data yang melintas di jaringan</figcaption>
+        </figure>
+        <figure>
+          <div class="kotak">Citra hasil dekripsi</div>
+          <figcaption>Citra yang diterima server</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- ===================== ALUR PROTOKOL ===================== -->
+    <section class="panel" id="alur">
+      <h2>Alur protokol</h2>
+      <p class="intro">Klik langkah untuk melihat penjelasannya.</p>
+
+      <div class="langkah">
+        <details>
+          <summary><span class="no">1</span> Buat kunci</summary>
+          <p>Server membuat pasangan kunci RSA beserta parameter CRT <code>dp</code>, <code>dq</code>, dan <code>q_inv</code>.</p>
+          <p class="fn">rsa_generate_key_crt</p>
+        </details>
+        <details>
+          <summary><span class="no">2</span> Enkapsulasi</summary>
+          <p>Client memilih angka acak <code>z</code>, lalu menghitung <code>C = z<sup>e</sup> mod n</code>.</p>
+          <p class="fn">rsa_kem_encapsulate</p>
+        </details>
+        <details>
+          <summary><span class="no">3</span> Turunkan kunci AES</summary>
+          <p>HKDF mengubah <code>z</code> menjadi kunci simetris dengan panjang 16 atau 32 byte.</p>
+          <p class="fn">hkdf_extract, hkdf_expand</p>
+        </details>
+        <details>
+          <summary><span class="no">4</span> Enkripsi citra</summary>
+          <p>AES-GCM mengenkripsi citra dan menghasilkan ciphertext beserta tag autentikasi.</p>
+          <p class="fn">aead_encrypt_decrypt</p>
+        </details>
+        <details>
+          <summary><span class="no">5</span> Dekapsulasi</summary>
+          <p>Server memulihkan <code>z</code> dengan CRT, lalu menurunkan kunci AES yang sama.</p>
+          <p class="fn">rsa_kem_decapsulate_crt</p>
+        </details>
+        <details>
+          <summary><span class="no">6</span> Dekripsi citra</summary>
+          <p>Tag diperiksa. Jika cocok, ciphertext dikembalikan menjadi citra asli.</p>
+          <p class="fn">aead_encrypt_decrypt</p>
+        </details>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="wrap foot">RSA Send &middot; Proyek Matematika Diskrit</footer>
+
+</body>
+</html>
