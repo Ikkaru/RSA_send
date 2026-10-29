@@ -6,7 +6,7 @@ import secrets
 
 from rsa_send.modular_math import generate_prime, crt_reconstruct, mod_pow, mod_invers
 
-
+# hkdf Extract
 def hkdf_extract(salt: bytes | None, ikm: bytes, hash_alg=hashlib.sha256) -> bytes:
     hash_len = hash_alg().digest_size
 
@@ -36,12 +36,6 @@ def hkdf_expand(prk: bytes, info: bytes, length: int, hash_alg=hashlib.sha256) -
     return okm[:length]
 
 
-# HKDF Wrapper
-def hkdf(ikm: bytes, length: int, salt: bytes | None = None, info: bytes = b"", hash_alg=hashlib.sha256) -> bytes:
-    prk = hkdf_extract(salt, ikm, hash_alg)
-    return hkdf_expand(prk, info, length, hash_alg)
-
-
 KEM_INFO = b"RSA-KEM TrafficKey"
 
 
@@ -50,6 +44,7 @@ def _int_to_bytes(z: int, n: int) -> bytes:
     return z.to_bytes(k, "big")
 
 
+# Use the HKDF to Derive the Z 
 def _derive_traffic_key(z: int, n: int, key_len: int, salt:bytes | None = None) -> bytes:
     z_bytes = _int_to_bytes(z, n)
     prk = hkdf_extract(salt, z_bytes)
@@ -69,7 +64,6 @@ def rsa_kem_encapsulate(public_key: tuple[int, int], key_len: int = 32, salt: by
     return c_bytes, traffic_key
 
 PUBLIC_EXPONENT = 65537 # e
-
 
 def rsa_generate_key_crt(bits: int = 2048) -> tuple[tuple[int, int], tuple[int, ...]]:
     if bits < 16 or bits % 2 != 0:
@@ -109,6 +103,7 @@ def rsa_generate_key_crt(bits: int = 2048) -> tuple[tuple[int, int], tuple[int, 
     public_key = (e, n)
     private_key_crt = (n, d, p, q, dp, dq, q_inv)
     return public_key, private_key_crt
+
 
 def rsa_kem_decapsulate_crt(c_input: int, private_key_crt: tuple, key_len: int = 32, salt: bytes | None = None) -> bytes:
     n, d, p, q, dp, dq, q_inv = private_key_crt
